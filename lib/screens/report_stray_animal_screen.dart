@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'map_picker_screen.dart';
 import '../services/location_service.dart';
 
 class ReportStrayAnimalScreen extends StatefulWidget {
@@ -50,6 +52,44 @@ class _ReportStrayAnimalScreenState extends State<ReportStrayAnimalScreen> {
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  LatLng? _parseLocation() {
+    try {
+      final parts = _locationController.text.split(',');
+      if (parts.length >= 2) {
+        final lat = double.tryParse(parts[0].trim());
+        final lon = double.tryParse(parts[1].trim());
+        if (lat != null && lon != null) {
+          return LatLng(lat, lon);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _selectLocationOnMap() async {
+    try {
+      final current = _parseLocation();
+      final selected = await Navigator.of(context).push<LatLng>(
+        MaterialPageRoute(
+          builder: (_) => MapPickerScreen(
+            initialLatitude: current?.latitude,
+            initialLongitude: current?.longitude,
+          ),
+        ),
+      );
+      if (selected != null && mounted) {
+        setState(() {
+          _locationController.text = '${selected.latitude.toStringAsFixed(6)}, ${selected.longitude.toStringAsFixed(6)}';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao selecionar no mapa: ${e.toString()}')),
+      );
     }
   }
 
@@ -198,12 +238,18 @@ class _ReportStrayAnimalScreenState extends State<ReportStrayAnimalScreen> {
               ),
               const SizedBox(height: 8),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(child: Container()),
                   OutlinedButton.icon(
                     onPressed: _isLoading ? null : _useCurrentLocation,
                     icon: const Icon(Icons.my_location),
                     label: const Text('Usar localização atual'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _selectLocationOnMap,
+                    icon: const Icon(Icons.map),
+                    label: const Text('Selecionar no mapa'),
                   ),
                 ],
               ),
