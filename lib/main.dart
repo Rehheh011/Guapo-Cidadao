@@ -82,7 +82,7 @@ class MyApp extends StatelessWidget {
 
 }
 
-// Função demonstrativa que abre um chat de suporte (apenas UI, não funcional)
+// Função demonstrativa que abre um chat de suporte com opções numéricas no demo
 void showSupportChatDemo(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -91,96 +91,275 @@ void showSupportChatDemo(BuildContext context) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (context) {
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.95,
-        builder: (_, controller) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+      return const SupportChatDemo();
+    },
+  );
+}
+
+class SupportChatDemo extends StatefulWidget {
+  const SupportChatDemo({super.key});
+
+  @override
+  State<SupportChatDemo> createState() => _SupportChatDemoState();
+}
+
+class _SupportChatDemoState extends State<SupportChatDemo> {
+  final List<Map<String, dynamic>> _messages = [];
+  final TextEditingController _inputController = TextEditingController();
+  String _flow = 'root';
+
+  @override
+  void initState() {
+    super.initState();
+    _addBotMessage('Olá! Eu sou o assistente de demo. Escolha uma opção abaixo:');
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  void _addBotMessage(String text) {
+    setState(() {
+      _messages.add({'isUser': false, 'text': text});
+    });
+  }
+
+  void _addUserMessage(String text) {
+    setState(() {
+      _messages.add({'isUser': true, 'text': text});
+    });
+  }
+
+  List<Map<String, dynamic>> get _currentOptions {
+    switch (_flow) {
+      case 'status':
+        return [
+          {'id': 1, 'text': '1. Ver status de ocorrência'},
+          {'id': 2, 'text': '2. Voltar ao menu principal'},
+        ];
+      case 'report':
+        return [
+          {'id': 1, 'text': '1. Denúncia de vazamento de água'},
+          {'id': 2, 'text': '2. Denúncia de lixo na rua'},
+          {'id': 3, 'text': '3. Voltar ao menu principal'},
+        ];
+      case 'services':
+        return [
+          {'id': 1, 'text': '1. Agendar consulta'},
+          {'id': 2, 'text': '2. IPTU e serviços'},
+          {'id': 3, 'text': '3. Voltar ao menu principal'},
+        ];
+      case 'contact':
+        return [
+          {'id': 1, 'text': '1. Chat humano (demo)'},
+          {'id': 2, 'text': '2. Voltar ao menu principal'},
+        ];
+      case 'root':
+      default:
+        return [
+          {'id': 1, 'text': '1. Status de ocorrência'},
+          {'id': 2, 'text': '2. Nova denúncia'},
+          {'id': 3, 'text': '3. Serviços'},
+          {'id': 4, 'text': '4. Contato'},
+          {'id': 5, 'text': '5. Sair'},
+        ];
+    }
+  }
+
+  void _handleOption(int id) {
+    _addUserMessage(id.toString());
+    switch (_flow) {
+      case 'status':
+        if (id == 1) {
+          _addBotMessage('Status atual: Em análise. Previsão de atualização em 2 dias.');
+        } else {
+          _flow = 'root';
+          _addBotMessage('Voltando ao menu principal. Escolha outra opção.');
+        }
+        break;
+      case 'report':
+        if (id == 1) {
+          _addBotMessage('Denúncia registrada: Vazamento de água na Rua das Flores. Obrigado!');
+          _flow = 'root';
+        } else if (id == 2) {
+          _addBotMessage('Denúncia registrada: Lixo na Praça Principal. Obrigado!');
+          _flow = 'root';
+        } else {
+          _flow = 'root';
+          _addBotMessage('Voltando ao menu principal. O que mais precisa?');
+        }
+        break;
+      case 'services':
+        if (id == 1) {
+          _addBotMessage('Para agendar consulta, acesse o menu principal > Marcar Consulta.');
+        } else if (id == 2) {
+          _addBotMessage('No momento, IPTU está em desenvolvimento. Consulte a prefeitura local.');
+        } else {
+          _flow = 'root';
+          _addBotMessage('Voltando ao menu principal.');
+        }
+        break;
+      case 'contact':
+        if (id == 1) {
+          _addBotMessage('Arquivando pedido de atendimento humano. Aguarde um momento... (demo)');
+        } else {
+          _flow = 'root';
+          _addBotMessage('Voltando ao menu principal.');
+        }
+        break;
+      default:
+        if (id == 1) {
+          _flow = 'status';
+          _addBotMessage('Qual tipo de status você quer consultar?');
+        } else if (id == 2) {
+          _flow = 'report';
+          _addBotMessage('Qual tipo de denúncia deseja registrar?');
+        } else if (id == 3) {
+          _flow = 'services';
+          _addBotMessage('Qual serviço você precisa?');
+        } else if (id == 4) {
+          _flow = 'contact';
+          _addBotMessage('Como prefere entrar em contato?');
+        } else {
+          _addBotMessage('Obrigado pela demonstração! Se quiser, volte ao menu.');
+          _flow = 'root';
+        }
+    }
+
+    if (_flow == 'root') {
+      Future.delayed(const Duration(milliseconds: 250), () {
+        _addBotMessage('Menu principal:\n1. Status de ocorrência\n2. Nova denúncia\n3. Serviços\n4. Contato\n5. Sair');
+      });
+    }
+  }
+
+  void _sendText() {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) return;
+    _inputController.clear();
+    _addUserMessage(text);
+
+    if (text.toLowerCase().contains('parar') || text.toLowerCase().contains('sair')) {
+      _addBotMessage('Fluxo encerrado. Toque em fechar para sair ou escolha uma opção numérica.');
+      _flow = 'root';
+      return;
+    }
+
+    if (_flow == 'status' && text.contains(RegExp(r'\d'))) {
+      _addBotMessage('Ok, estou buscando o status da ocorrência #' + text + '... (demo)');
+      return;
+    }
+
+    _addBotMessage('Recebi sua mensagem: "$text". Você pode selecionar uma opção abaixo para continuar.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.75,
+      minChildSize: 0.35,
+      maxChildSize: 0.95,
+      builder: (_, controller) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                const Text('Chat de Suporte', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView(
-                    controller: controller,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Card(
-                          color: const Color(0xFFF1F1F1),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Text('Olá! Em que podemos ajudar hoje?'),
+              ),
+              const Text('Chat de Suporte (Demo)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  controller: controller,
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final item = _messages[index];
+                    return Align(
+                      alignment: item['isUser'] ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: item['isUser'] ? const Color(0xFF047857) : const Color(0xFFF1F1F1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(maxWidth: 280),
+                        child: Text(
+                          item['text'],
+                          style: TextStyle(
+                            color: item['isUser'] ? Colors.white : Colors.black87,
+                            fontSize: 14,
                           ),
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Card(
-                          color: const Color(0xFF047857),
-                          child: const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Text('Tenho uma dúvida sobre um pedido', style: TextStyle(color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Card(
-                          color: const Color(0xFFF1F1F1),
-                          child: const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Text('Certo, podemos fornecer informações. Lembre-se que isto é apenas uma demonstração.'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                Row(
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 46,
+                child: Row(
                   children: [
                     Expanded(
                       child: TextField(
+                        controller: _inputController,
                         decoration: InputDecoration(
-                          hintText: 'Escreva sua mensagem (demo)',
+                          hintText: 'Digite aqui ou escolha uma opção',
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         ),
+                        onSubmitted: (_) => _sendText(),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () {
-                        // ação demonstrativa: apenas fecha ou mostra uma mensagem
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Mensagem enviada (demo)'), duration: Duration(seconds: 2)),
-                        );
-                      },
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857)),
+                      onPressed: _sendText,
                       child: const Text('Enviar'),
                     ),
                   ],
                 ),
-              ],
-            ),
-          );
-        },
-      );
-    },
-  );
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _currentOptions.map((option) {
+                  return OutlinedButton(
+                    onPressed: () => _handleOption(option['id'] as int),
+                    child: Text(option['text']),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Fechar chat'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 // Serviço de gerenciamento de inatividade
@@ -343,6 +522,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _openPasswordRecoveryScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PasswordRecoveryScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -468,40 +654,7 @@ class _LoginPageState extends State<LoginPage> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              if (_emailController.text.isEmpty) {
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Por favor, insira seu email'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              try {
-                                await Supabase.instance.client.auth.resetPasswordForEmail(
-                                  _emailController.text,
-                                );
-
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Email de recuperação enviado! Verifique sua caixa de entrada.'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (error) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text('Erro ao enviar email de recuperação: ${error.toString()}'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
+                            onPressed: _openPasswordRecoveryScreen,
                             child: const Text(
                               'Esqueceu a senha?',
                               style: TextStyle(color: Color(0xFF047857)),
@@ -589,6 +742,122 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class PasswordRecoveryScreen extends StatefulWidget {
+  const PasswordRecoveryScreen({super.key});
+
+  @override
+  State<PasswordRecoveryScreen> createState() => _PasswordRecoveryScreenState();
+}
+
+class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, insira seu email para recuperar a senha'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+$").hasMatch(email)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, informe um email em formato válido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Email de recuperação enviado! Verifique sua caixa de entrada.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Erro ao enviar email de recuperação: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Recuperar senha'),
+        backgroundColor: const Color(0xFF047857),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Digite seu email para receber o link de recuperação de senha.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _sendPasswordReset,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857)),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Enviar email de recuperação'),
+              ),
+            ),
+          ],
         ),
       ),
     );
