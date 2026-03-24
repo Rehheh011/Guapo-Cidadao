@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/location_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'map_picker_screen.dart';
 import 'dart:io';
 
 class ReportGcmScreen extends StatefulWidget {
@@ -168,6 +170,42 @@ class _ReportGcmScreenState extends State<ReportGcmScreen> {
     }
   }
 
+  LatLng? _parseCurrentLatLng() {
+    try {
+      final lat = double.tryParse(_latController.text.trim());
+      final lon = double.tryParse(_lonController.text.trim());
+      if (lat != null && lon != null) {
+        return LatLng(lat, lon);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _selectLocationOnMap() async {
+    try {
+      final current = _parseCurrentLatLng();
+      final selected = await Navigator.of(context).push<LatLng>(
+        MaterialPageRoute(
+          builder: (_) => MapPickerScreen(
+            initialLatitude: current?.latitude,
+            initialLongitude: current?.longitude,
+          ),
+        ),
+      );
+      if (selected != null && mounted) {
+        setState(() {
+          _latController.text = selected.latitude.toStringAsFixed(6);
+          _lonController.text = selected.longitude.toStringAsFixed(6);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao selecionar no mapa: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,13 +331,21 @@ class _ReportGcmScreenState extends State<ReportGcmScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: _loading ? null : _useCurrentLocation,
-                  icon: const Icon(Icons.my_location),
-                  label: const Text('Usar localização atual'),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _loading ? null : _useCurrentLocation,
+                    icon: const Icon(Icons.my_location),
+                    label: const Text('Usar localização atual'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: _loading ? null : _selectLocationOnMap,
+                    icon: const Icon(Icons.map),
+                    label: const Text('Selecionar no mapa'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
