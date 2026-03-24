@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/location_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'map_picker_screen.dart';
 import 'dart:io';
 
 class RegisterOccurrenceScreen extends StatefulWidget {
@@ -35,13 +37,67 @@ class _RegisterOccurrenceScreenState extends State<RegisterOccurrenceScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
+
+  Future<void> _selectLocationOnMap() async {
+    try {
+      final currentLatLng = _parseLocation();
+      final selected = await Navigator.of(context).push<LatLng>(
+        MaterialPageRoute(
+          builder: (_) => MapPickerScreen(
+            initialLatitude: currentLatLng?.latitude,
+            initialLongitude: currentLatLng?.longitude,
+          ),
+        ),
+      );
+      if (selected != null) {
+        _locationController.text = '${selected.latitude.toStringAsFixed(6)}, ${selected.longitude.toStringAsFixed(6)}';
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao selecionar no mapa: ${e.toString()}')),
+      );
+    }
+  }
+
+  LatLng? _parseLocation() {
+    try {
+      final parts = _locationController.text.split(',');
+      if (parts.length >= 2) {
+        final lat = double.tryParse(parts[0].trim());
+        final lon = double.tryParse(parts[1].trim());
+        if (lat != null && lon != null) {
+          return LatLng(lat, lon);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImagesFromGallery() async {
+    final List<XFile>? images = await _picker.pickMultiImage(imageQuality: 80);
+    if (images != null && images.isNotEmpty) {
+      setState(() {
+        _selectedImages.addAll(images);
+      });
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (image != null) {
+      setState(() {
+        _selectedImages.add(image);
+      });
+    }
   }
 
   Future<void> _registerOccurrence() async {
@@ -185,26 +241,27 @@ class _RegisterOccurrenceScreenState extends State<RegisterOccurrenceScreen> {
               const SizedBox(height: 8.0),
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () async {
-                            // Permite selecionar múltiplas imagens
-                            final List<XFile>? images = await _picker.pickMultiImage(imageQuality: 80);
-                            if (images != null && images.isNotEmpty) {
-                              setState(() {
-                                _selectedImages = images;
-                              });
-                            }
-                          },
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Adicionar fotos'),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857)),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _pickImagesFromGallery,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Galeria'),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857)),
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Text('${_selectedImages.length} selecionada(s)'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _takePhoto,
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Câmera'),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F2937)),
+                    ),
+                  ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Text('${_selectedImages.length} selecionada(s)'),
               const SizedBox(height: 12),
               if (_selectedImages.isNotEmpty)
                 SizedBox(
@@ -270,6 +327,7 @@ class _RegisterOccurrenceScreenState extends State<RegisterOccurrenceScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Localização',
                         border: OutlineInputBorder(),
+                        hintText: 'lat, lon',
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -279,12 +337,25 @@ class _RegisterOccurrenceScreenState extends State<RegisterOccurrenceScreen> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 8.0),
-                  ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _useCurrentLocation,
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('GPS'),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _useCurrentLocation,
+                      icon: const Icon(Icons.my_location),
+                      label: const Text('Usar localização atual'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _selectLocationOnMap,
+                      icon: const Icon(Icons.map),
+                      label: const Text('Selecionar no mapa'),
+                    ),
                   ),
                 ],
               ),
