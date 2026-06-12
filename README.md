@@ -52,16 +52,3 @@ Se usar plugins nativos (por exemplo `geolocator`, `image_picker`, `shared_prefe
 - `flutter test` → Executa testes unitários/widget
 - `flutter pub outdated` → Verifica pacotes desatualizados
 
-
-## 📌 Próximos passos
-
-- Adicionar autenticação (Firebase Auth ou API própria)
-- Implementar um serviço de API/HTTP em `lib/services/`
-- Criar testes unitários em `test/`
-- Publicar no Google Play / App Store
-
-
-## ✨ Contato
-
-Se quiser, posso te ajudar a adicionar uma tela de login e persistência de usuário.
-
